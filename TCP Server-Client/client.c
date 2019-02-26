@@ -7,14 +7,14 @@
 #include <string.h>
 #include <arpa/inet.h>
 #define PORT 8080
-#define MAX_SIZE 1024
+#define MAX_SIZE 1020000
 int main(int argc, char const *argv[])
 {
     struct sockaddr_in address;
     int sock = 0, valread;
     struct sockaddr_in serv_addr; // Special data structure to hold address of server. 
     char *hello = "Hello from client";
-    char buffer[1024] = {0};
+    char buffer[MAX_SIZE] = {0};
     /* Creating a socket for the client to communicate through.*/
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -45,9 +45,9 @@ int main(int argc, char const *argv[])
     // Runs an infinite loop to keep taking commands from the user, until exit is entered.
     while(1){
         printf(">>");
-        char buffer[1024];
-        char store[1024];
-        for(int i = 0; i < 1024; ++i)
+        char buffer[MAX_SIZE];
+        char store[MAX_SIZE];
+        for(int i = 0; i < MAX_SIZE; ++i)
             buffer[i] = '\0';
         /* Accepting input from the user. */
         int len = 0;
@@ -60,7 +60,7 @@ int main(int argc, char const *argv[])
             buffer[len++] = c;
         }
         buffer[len - 1] = '\0';
-        for(int i = 0; i < 1024; ++i)
+        for(int i = 0; i < MAX_SIZE; ++i)
             store[i] = '\0';
         for(int i = 0; i < len; ++i)
             store[i] = buffer[i];
@@ -68,10 +68,10 @@ int main(int argc, char const *argv[])
         
         send(sock , buffer , strlen(buffer) , 0 );  // send the message.
         
-        for(int i = 0; i < 1024; ++i)
+        for(int i = 0; i < MAX_SIZE; ++i)
             buffer[i] = '\0';
         
-        valread = read( sock , buffer, 1024);  // receive message back from server, into the buffer
+        valread = read( sock , buffer, MAX_SIZE);  // receive message back from server, into the buffer
         
         /* Processing according to message from server*/
         if(strcmp(buffer, "Thanks for connecting! Have a nice Day!") == 0){

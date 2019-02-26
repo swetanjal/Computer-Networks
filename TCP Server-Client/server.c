@@ -7,23 +7,23 @@
 #include <pthread.h>
 #include <dirent.h>
 #define PORT 8080
-#define MAX_SIZE 1024
+#define MAX_SIZE 1020000
 
 void * socketThread(void * arg)
 {
     /* This code segment is shared by each client thread. */
     int valread;
-    char buffer[1024] = {0};
+    char buffer[MAX_SIZE] = {0};
     char *response = "Hello World!\n";
     int new_socket = *((int *)arg);
     // Infinite loop to keep listening to port for data from client.
     while(1){
-        for(int i = 0; i < 1024; ++i)
+        for(int i = 0; i < MAX_SIZE; ++i)
             buffer[i] = '\0';
-        valread = read( new_socket , buffer, 1024);  // read information from client
+        valread = read( new_socket , buffer, MAX_SIZE);  // read information from client
         
         /* Some processing done to extract first word separated by default delimiter white space. */
-        char word[1024] = {0};
+        char word[MAX_SIZE] = {0};
         int b = 0;
         while(buffer[b] != ' ' && buffer[b] != '\0')
         {
@@ -36,7 +36,7 @@ void * socketThread(void * arg)
         if(strcmp(buffer, "listall") == 0)
         {
             // Received command listall from client
-            char ls[1024];
+            char ls[MAX_SIZE];
             int c = 0;
             DIR *dir_name;
             struct dirent *dir; // Special data structure to hold details of files in directories.
