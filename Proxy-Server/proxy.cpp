@@ -27,6 +27,27 @@ struct element{
 void parse(string http_request, element * ptr){
     ptr -> destination_port = 8081;
     ptr -> destination_ip = "127.0.0.1";
+    int i;
+    for(i =0;http_request[i]!=' ';i++);
+    i += 8;
+    string dest_ip;
+    string dest_port;
+    string filenm;
+	for(;http_request[i]!=':';i++)
+		dest_ip.push_back(http_request[i]);
+	i++;
+	for(;http_request[i]!='/';i++)
+		dest_port.push_back(http_request[i]);
+	i++;
+	for(;http_request[i]!=' ';i++)
+		filenm.push_back(http_request[i]);
+	// cout<<dest_ip<<endl;
+	// cout<<dest_port<<endl;
+	// cout<<filenm<<endl;
+	ptr -> destination_port = dest_port;
+	ptr -> destination_ip = dest_ip;
+	ptr -> filename = filenm;	
+	// dest_ip.
     return;
 }
 
@@ -90,7 +111,7 @@ void * serveRequest(void * arg)
     int server_socket = connect(ptr);
     /****************************************************************************************/
     /************************** Send request to server and get response *********************/
-    cout << communication(server_socket, ptr, http_request) << endl;
+    // cout << communication(server_socket, ptr, http_request) << endl;
     /****************************************************************************************/
     
     /********************************* Send Response to client ******************************/
@@ -144,6 +165,7 @@ int main(int argc, char const *argv[])
             perror("accept");
             continue;
         }
+
         element e;
         e.client_port = ntohs(address.sin_port);
         e.client_ip = inet_ntoa(address.sin_addr);
