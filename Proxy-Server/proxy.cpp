@@ -25,7 +25,48 @@ struct element{
 };
 
 void parse(string http_request, element * ptr){
+    ptr -> destination_port = 8081;
+    ptr -> destination_ip = "127.0.0.1";
     return;
+}
+
+int connect(element * ptr)
+{
+    struct sockaddr_in address;
+    int sock = 0, valread;
+    struct sockaddr_in serv_addr;
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
+    memset(&serv_addr, '0', sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(ptr -> destination_port);
+    if(inet_pton(AF_INET, &ptr->destination_ip[0], &serv_addr.sin_addr)<=0)
+    {
+        printf("\nInvalid address/ Address not supported \n");
+        return -1;
+    }
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    {
+        printf("\nConnection Failed \n");
+        return -1;
+    }
+    return sock;
+}
+
+string communication(int sock, element * ptr, string message){
+    //string message = "Hello from client";
+    send(sock , &message[0] , message.size(), 0);
+    char buffer[MAX_SIZE];
+    for(int i = 0; i < MAX_SIZE; ++i)
+        buffer[i] = '\0';
+    read( sock , buffer, MAX_SIZE);
+    string response;
+    for(int i = 0; i < strlen(buffer); ++i)
+        response = response + buffer[i];
+    return response;
 }
 
 void * serveRequest(void * arg)
@@ -45,7 +86,12 @@ void * serveRequest(void * arg)
     /********************************* Parse HTTP request ***********************************/
     parse(http_request, ptr);
     /****************************************************************************************/
-
+    /********************************* Connect to Server ************************************/
+    int server_socket = connect(ptr);
+    /****************************************************************************************/
+    /************************** Send request to server and get response *********************/
+    cout << communication(server_socket, ptr, http_request) << endl;
+    /****************************************************************************************/
     
     /********************************* Send Response to client ******************************/
     send(ptr->socket , &http_request[0] , http_request.size() , 0);
