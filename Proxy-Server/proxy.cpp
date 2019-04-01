@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define PORT 8080
+#define PORT 20100
 #define MAX_SIZE 1024
 using namespace std;
 
@@ -25,9 +25,6 @@ struct element{
 };
 
 void parse(string http_request, element * ptr){
-    ptr -> destination_port = 8081;
-    ptr -> destination_ip = "127.0.0.1";
-
     string dest_ip;
     string dest_port;
     string filenm;
@@ -35,7 +32,6 @@ void parse(string http_request, element * ptr){
 
     int i;
     for(i =0;http_request[i]!=' ';i++){
-    	cout<<http_request[i];
     	get_post.push_back(http_request[i]);
     }
     	
@@ -49,16 +45,10 @@ void parse(string http_request, element * ptr){
 	for(;http_request[i]!=' ';i++)
 		filenm.push_back(http_request[i]);
 
-	// cout<<dest_ip<<endl;
-	// cout<<dest_port<<endl;
-	// cout<<filenm<<endl;
-	// cout<<get_post<<endl;
-
 	ptr -> destination_port = atoi(&dest_port[0]);
 	ptr -> destination_ip = dest_ip;
 	ptr -> filename = filenm;	
 	ptr -> method = get_post;
-	// dest_ip.
     return;
 }
 
@@ -90,14 +80,32 @@ int connect(element * ptr)
 
 string communication(int sock, element * ptr, string message){
     //string message = "Hello from client";
-    send(sock , &message[0] , message.size(), 0);
+    string request = "";
+    char * split = strtok(&message[0], " ");
+    int cnt = 0;
+    while(split != NULL){
+        if(cnt == 0)
+            request = split;
+        else if(cnt == 1)
+            request = request + " /" + ptr->filename;
+        else
+            request = request + " " + split;
+        split = strtok(NULL, " ");
+        cnt++;
+    }
+    send(sock , &request[0] , request.size(), 0);
     char buffer[MAX_SIZE];
     for(int i = 0; i < MAX_SIZE; ++i)
         buffer[i] = '\0';
     read( sock , buffer, MAX_SIZE);
-    string response;
-    for(int i = 0; i < strlen(buffer); ++i)
-        response = response + buffer[i];
+    string response = "";
+    while(buffer[0] != '\0'){
+        for(int i = 0; i < strlen(buffer); ++i)
+            response = response + buffer[i];
+        for(int i = 0; i < MAX_SIZE; ++i)
+            buffer[i] = '\0';
+        read( sock , buffer, MAX_SIZE);    
+    }
     return response;
 }
 
@@ -122,11 +130,11 @@ void * serveRequest(void * arg)
     int server_socket = connect(ptr);
     /****************************************************************************************/
     /************************** Send request to server and get response *********************/
-    // cout << communication(server_socket, ptr, http_request) << endl;
+    string response = communication(server_socket, ptr, http_request);
     /****************************************************************************************/
     
     /********************************* Send Response to client ******************************/
-    send(ptr->socket , &http_request[0] , http_request.size() , 0);
+    send(ptr->socket , &response[0] , response.size() , 0);
     /****************************************************************************************/
     
     /********************************* Close connection *************************************/

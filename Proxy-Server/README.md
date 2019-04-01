@@ -1,0 +1,1 @@
+curl --request GET --proxy 127.0.0.1:8080 --local-port 20001 127.0.0.1:8082/1.data
