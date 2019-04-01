@@ -27,12 +27,19 @@ struct element{
 void parse(string http_request, element * ptr){
     ptr -> destination_port = 8081;
     ptr -> destination_ip = "127.0.0.1";
-    int i;
-    for(i =0;http_request[i]!=' ';i++);
-    i += 8;
+
     string dest_ip;
     string dest_port;
     string filenm;
+    string get_post;
+
+    int i;
+    for(i =0;http_request[i]!=' ';i++){
+    	cout<<http_request[i];
+    	get_post.push_back(http_request[i]);
+    }
+    	
+    i += 8;
 	for(;http_request[i]!=':';i++)
 		dest_ip.push_back(http_request[i]);
 	i++;
@@ -41,12 +48,16 @@ void parse(string http_request, element * ptr){
 	i++;
 	for(;http_request[i]!=' ';i++)
 		filenm.push_back(http_request[i]);
+
 	// cout<<dest_ip<<endl;
 	// cout<<dest_port<<endl;
 	// cout<<filenm<<endl;
-	ptr -> destination_port = dest_port;
+	// cout<<get_post<<endl;
+
+	ptr -> destination_port = atoi(&dest_port[0]);
 	ptr -> destination_ip = dest_ip;
 	ptr -> filename = filenm;	
+	ptr -> method = get_post;
 	// dest_ip.
     return;
 }
