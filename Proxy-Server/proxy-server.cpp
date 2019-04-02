@@ -250,7 +250,22 @@ string communication(int sock, element * ptr, string message){
     }
     return response;
 }
-
+/********************************************************************************************/
+bool isBlackList(string ip, int port){
+  bool success = false;
+  ifstream file("./proxy/blacklist.txt");
+    if(file.is_open()){
+        string line;
+        while(getline(file, line)){
+            if(line == ip + ":" + to_string(port)){
+                success = true;
+            }
+        }
+        file.close();
+    }
+  return success;
+}
+/********************************************************************************************/
 void * serveRequest(void * arg)
 {
     int valread;
@@ -268,13 +283,18 @@ void * serveRequest(void * arg)
     /********************************* Parse HTTP request ***********************************/
     parse(http_request, ptr);
     /****************************************************************************************/
+    string response = "";
+    if(isBlackList(ptr->destination_ip, ptr->destination_port) && !ptr->isAuthenticated){
+      response = "Authentication required to access the requested domain\n";
+    }
+    else{
     /********************************* Connect to Server ************************************/
-    int server_socket = connect(ptr);
+      int server_socket = connect(ptr);
     /****************************************************************************************/
     /************************** Send request to server and get response *********************/
-    string response = communication(server_socket, ptr, http_request);
+      response = communication(server_socket, ptr, http_request);
     /****************************************************************************************/
-    
+    }
     /********************************* Send Response to client ******************************/
     send(ptr->socket , &response[0] , response.size() , 0);
     /****************************************************************************************/
