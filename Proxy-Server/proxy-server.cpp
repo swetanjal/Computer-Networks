@@ -10,10 +10,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <ctime>
 #define PORT 20100
 #define MAX_SIZE 1024
 using namespace std;
-
+static const size_t npos = -1;
 struct element{
     int socket;
     string destination_ip;
@@ -22,6 +23,7 @@ struct element{
     int client_port;
     bool isAuthenticated;
     string method;
+    string date_time;
     string filename;
 };
 
@@ -250,6 +252,42 @@ string communication(int sock, element * ptr, string message){
     }
     return response;
 }
+/************************************************************************************************/
+string cacheControl(int sock, element * ptr, string message){
+    string request = "";
+    char * split = strtok(&message[0], " \n");
+    int cnt = 0;
+    while(split != NULL){
+        if(cnt == 0)
+            request += split;
+        else if(cnt == 1)
+            request = request + " /" + ptr->filename;
+        else
+            request = request + " " + split;
+        split = strtok(NULL, " ");
+        cnt++;
+    }
+    request = request.substr(0, request.find("Host:")) + "If-Modified-Since: " + ptr->date_time + "\n" + request.substr(request.find("Host:"));
+    send(sock , &request[0] , request.size(), 0);
+    char buffer[MAX_SIZE];
+    for(int i = 0; i < MAX_SIZE; ++i)
+        buffer[i] = '\0';
+    read( sock , buffer, MAX_SIZE);
+    string response = "";
+    while(buffer[0] != '\0'){
+        for(int i = 0; i < strlen(buffer); ++i)
+            response = response + buffer[i];
+        for(int i = 0; i < MAX_SIZE; ++i)
+            buffer[i] = '\0';
+        read( sock , buffer, MAX_SIZE);    
+    }
+    return response;
+}
+bool isModified(string response){
+  if(response.find("HTTP/1.0 304 Not Modified") ==  std::string::npos)
+    return true;
+  return false;
+}
 /********************************************************************************************/
 bool isBlackList(string ip, int port){
   bool success = false;
@@ -266,9 +304,17 @@ bool isBlackList(string ip, int port){
   return success;
 }
 /********************************************************************************************/
+bool isCached(element * ptr){
+  return true;
+}
+string cachedCopy(element * ptr){
+  return "";
+}
+/*********************************************************************************************/
 void * serveRequest(void * arg)
 {
     int valread;
+    time_t current_time;
     element * ptr = (element *)arg;
     /********************************** Get HTTP Request ***********************************/
     char buffer[MAX_SIZE] = {0};
@@ -279,11 +325,14 @@ void * serveRequest(void * arg)
     for(int i = 0; i < strlen(buffer); ++i)
         http_request = http_request + buffer[i];
     /****************************************************************************************/
-    //cout << base64_decode("dXNlcm5hbWU6cGFzc3dvcmQ=") << endl;
     /********************************* Parse HTTP request ***********************************/
     parse(http_request, ptr);
     /****************************************************************************************/
     string response = "";
+    current_time = time(0);
+    char * dt = ctime(&current_time);
+    ptr->date_time = &dt[0];
+    ptr->date_time = "Tue Apr  2 12:59:30 2019";
     if(isBlackList(ptr->destination_ip, ptr->destination_port) && !ptr->isAuthenticated){
       response = "Authentication required to access the requested domain\n";
     }
@@ -291,14 +340,22 @@ void * serveRequest(void * arg)
     /********************************* Connect to Server ************************************/
       int server_socket = connect(ptr);
     /****************************************************************************************/
+      if(isCached(ptr)){
+        response = cacheControl(server_socket, ptr, http_request);
+        if(!isModified(response))
+        {
+          response = cachedCopy(ptr);
+        }
+      }
+      else{
     /************************** Send request to server and get response *********************/
-      response = communication(server_socket, ptr, http_request);
+        response = communication(server_socket, ptr, http_request);
     /****************************************************************************************/
+      }
     }
     /********************************* Send Response to client ******************************/
     send(ptr->socket , &response[0] , response.size() , 0);
     /****************************************************************************************/
-    
     /********************************* Close connection *************************************/
     close(ptr->socket);
     pthread_exit(NULL);
