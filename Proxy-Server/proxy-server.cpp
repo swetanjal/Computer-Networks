@@ -4,13 +4,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>
-#include <string.h>
 #include <pthread.h>
 #include <dirent.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctime>
+#include <stdlib.h>
+#include <string>
+
 #define PORT 20100
 #define MAX_SIZE 1024
 using namespace std;
@@ -27,6 +29,9 @@ struct element{
     string filename;
 };
 
+
+map <string, vector<time_t> > cache_time;
+map <string , int> cache_loc;
 /**************************base64 encode and decode functions*************************************/
 /* 
    base64.cpp and base64.h
@@ -171,23 +176,23 @@ void parse(string http_request, element * ptr){
 
     int i;
     for(i =0;http_request[i]!=' ';i++){
-    	get_post.push_back(http_request[i]);
+      get_post.push_back(http_request[i]);
     }
-    	
+      
     i += 8;
-	for(;http_request[i]!=':';i++)
-		dest_ip.push_back(http_request[i]);
-	i++;
-	for(;http_request[i]!='/';i++)
-		dest_port.push_back(http_request[i]);
-	i++;
-	for(;http_request[i]!=' ';i++)
-		filenm.push_back(http_request[i]);
+  for(;http_request[i]!=':';i++)
+    dest_ip.push_back(http_request[i]);
+  i++;
+  for(;http_request[i]!='/';i++)
+    dest_port.push_back(http_request[i]);
+  i++;
+  for(;http_request[i]!=' ';i++)
+    filenm.push_back(http_request[i]);
 
-	ptr -> destination_port = atoi(&dest_port[0]);
-	ptr -> destination_ip = dest_ip;
-	ptr -> filename = filenm;	
-	ptr -> method = get_post;
+  ptr -> destination_port = atoi(&dest_port[0]);
+  ptr -> destination_ip = dest_ip;
+  ptr -> filename = filenm; 
+  ptr -> method = get_post;
     string auth = "";
     int idx = http_request.find("Authorization: Basic ") + 21;
     for(int i = idx; http_request[i] != '\n'; ++i)
@@ -302,13 +307,162 @@ bool isBlackList(string ip, int port){
         file.close();
     }
   return success;
-}
+} 
 /********************************************************************************************/
 bool isCached(element * ptr){
+
+  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  if(cache_loc.find(key)==cache_loc.end())
+    return false;
+
   return true;
 }
+void doCache(element *ptr , string response)
+{
+  time_t time_stamp;
+  time(&time_stamp);
+  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  if(cache_time[key].size() <= 2)
+    cache_time[key].push_back(time_stamp);
+  else
+  {
+    double sum_time = difftime(cache_time[key][2],cache_time[key][1]) + difftime(cache_time[key][1],cache_time[key][0]);
+    if(sum_time <= 300)
+    {
+      if(cache_loc.find(key)==cache_loc.end())
+      //not present in cache
+      {
+        auto it = cache_loc.begin();
+
+        // Add element to cache
+        cache_loc[key] = it->second;
+
+        // Pop first element
+        cache_loc.erase(it); 
+
+        // Writing in the data
+        FILE* fptr;
+        if(cache_loc[key] == 1)
+        {
+          fptr = fopen("cache_data1.txt", "w+");
+          if(fptr == NULL)
+          {
+             printf("Error!");
+             exit(1);
+          }
+          fprintf(fptr,"%s", response);
+          fclose(fptr);
+
+        }
+
+        else if(cache_loc[key] == 2)
+        {
+          fptr = fopen("cache_data2.txt", "w+");
+          if(fptr == NULL)
+          {
+             printf("Error!");
+             exit(1);
+          }
+          fprintf(fptr,"%s", response);
+          fclose(fptr);
+          
+        }
+
+        else if(cache_loc[key] == 3)
+        {
+          fptr = fopen("cache_data3.txt", "w+");
+          if(fptr == NULL)
+          {
+             printf("Error!");
+             exit(1);
+          }
+          fprintf(fptr,"%s", response);
+          fclose(fptr);
+          
+        }
+
+      } 
+
+    }
+  }
+}
 string cachedCopy(element * ptr){
-  return "";
+  // string s = (ptr -> destination_ip) + ':' + to_string(ptr -> destination_port) + '/';
+ //  return "";
+
+  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+
+
+
+  string cachedData;
+
+  if(cache_loc[key] == 1)
+  {
+    FILE *fptr; 
+    fptr = fopen("cache_data1.txt", "r"); 
+
+    if (fptr == NULL) 
+    { 
+        printf("Cannot open file \n"); 
+        exit(0); 
+    } 
+    
+    // Read contents from file 
+    char c = fgetc(fptr); 
+    while (c != EOF) 
+    { 
+        cachedData.push_back(c);
+        c = fgetc(fptr); 
+    } 
+
+  }
+
+  if(cache_loc[key] == 2)
+  {
+    FILE *fptr; 
+    fptr = fopen("cache_data2.txt", "r"); 
+
+    if (fptr == NULL) 
+    { 
+        printf("Cannot open file \n"); 
+        exit(0); 
+    } 
+    
+    // Read contents from file 
+    char c = fgetc(fptr); 
+    while (c != EOF) 
+    { 
+        cachedData.push_back(c);
+        c = fgetc(fptr); 
+    } 
+
+  }
+
+  if(cache_loc[key] == 3)
+  {
+    FILE *fptr; 
+    fptr = fopen("cache_data3.txt", "r"); 
+
+    if (fptr == NULL) 
+    { 
+        printf("Cannot open file \n"); 
+        exit(0); 
+    } 
+    
+    // Read contents from file 
+    char c = fgetc(fptr); 
+    while (c != EOF) 
+    { 
+        cachedData.push_back(c);
+        c = fgetc(fptr); 
+    } 
+
+  }
+
+  return cachedData;
+
+
+
 }
 /*********************************************************************************************/
 void * serveRequest(void * arg)
@@ -349,7 +503,9 @@ void * serveRequest(void * arg)
       }
       else{
     /************************** Send request to server and get response *********************/
+        
         response = communication(server_socket, ptr, http_request);
+        doCache(ptr , response);
     /****************************************************************************************/
       }
     }
@@ -370,6 +526,24 @@ int main(int argc, char const *argv[])
     struct sockaddr_in address; 
     int opt = 1;
     int addrlen = sizeof(address);
+
+    FILE *fptr1;
+    fptr1 = fopen("cache_data1.txt", "w+");
+
+    FILE *fptr2;
+    fptr2 = fopen("cache_data2.txt", "w+");
+
+    FILE *fptr3;
+    fptr3 = fopen("cache_data3.txt", "w+");
+
+    cache_loc["dummy_val"] = 1;
+    cache_loc["dummy_val1"] = 2;
+    cache_loc["dummy_val2"] = 3;
+
+
+
+
+
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
         perror("socket failed");
