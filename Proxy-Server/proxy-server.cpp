@@ -326,6 +326,11 @@ void doCache(element *ptr , string response)
     cache_time[key].push_back(time_stamp);
   else
   {
+    // Pop first
+  	cache_time[key].erase(cache_time[key].begin());
+
+  	// Enter new value and compute
+  	cache_time[key].push_back(time_stamp);
     double sum_time = difftime(cache_time[key][2],cache_time[key][1]) + difftime(cache_time[key][1],cache_time[key][0]);
     if(sum_time <= 300)
     {
