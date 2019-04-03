@@ -14,7 +14,7 @@
 #include <string>
 
 #define PORT 20100
-#define MAX_SIZE 1024
+#define MAX_SIZE 1000000
 using namespace std;
 static const size_t npos = -1;
 struct element{
@@ -534,18 +534,25 @@ void * serveRequest(void * arg)
     time_t current_time;
     element * ptr = (element *)arg;
     /********************************** Get HTTP Request ***********************************/
-    char buffer[MAX_SIZE] = {0};
+    char buffer[MAX_SIZE];
     for(int i = 0; i < MAX_SIZE; ++i)
             buffer[i] = '\0';
     valread = read( ptr->socket , buffer, MAX_SIZE);
-    string http_request = "";
+    string http_request = "";  
     for(int i = 0; i < strlen(buffer); ++i)
-        http_request = http_request + buffer[i];
+      http_request = http_request + buffer[i];
     /****************************************************************************************/
     /********************************* Parse HTTP request ***********************************/
     parse(http_request, ptr);
     /****************************************************************************************/
     string response = "";
+    if(!(ptr->client_port >= 20000 && ptr->client_port <= 20099)){
+      response = "Caanot serve outside IIIT requests.\n";
+      send(ptr->socket , &response[0] , response.size() , 0);
+      close(ptr->socket);
+      pthread_exit(NULL);
+      //return;
+    }
     current_time = time(0);
     char * dt = ctime(&current_time);
     ptr->date_time = &dt[0];
