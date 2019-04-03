@@ -1,10 +1,10 @@
 # Authenticated Users:
-swetanjal:swet
-shreyas:hack_shrey
+- swetanjal:swet
+- shreyas:hack_shrey
 
 # Blacklisted servers:
-127.0.0.1:20200
-127.0.0.1:20199
+- 127.0.0.1:20200
+- 127.0.0.1:20199
 
 # Start the servers:
 - Change directory to 'servers'
@@ -28,7 +28,7 @@ Send curl requests of the form:
 - Supports blacklisting of servers. In order to access blacklisted servers, authentication required.
 - Supports POST requests as well.
 
-# Scope for imporvement:
+# Scope for improvement:
 - Add reverse proxy feature by which requests can be served to outside IIIT servers by authenticating users.
 - Modify Round Robin Approach to Least Recently Requested cached response.
 - The server cannot process HTTP requests of size greater than 1000000 characters.
