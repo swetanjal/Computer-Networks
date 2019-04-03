@@ -312,7 +312,7 @@ bool isBlackList(string ip, int port){
 /********************************************************************************************/
 bool isCached(element * ptr){
 
-  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  string key = ptr->method + " " + ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
   if(cache_loc.find(key)==cache_loc.end())
     return false;
   char * dt = ctime(&cache_time[key][2]);
@@ -323,7 +323,7 @@ void doCache(element *ptr , string response)
 {
   time_t time_stamp;
   time(&time_stamp);
-  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  string key = ptr->method + " " + ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
   //cout << cache_time[key].size() << endl;
   if(cache_time[key].size() <= 2)
     cache_time[key].push_back(time_stamp);
@@ -407,7 +407,7 @@ string cachedCopy(element * ptr){
   // string s = (ptr -> destination_ip) + ':' + to_string(ptr -> destination_port) + '/';
   //  return "";
   cout << "Using cached copy.\n";
-  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  string key = ptr->method + " " + ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
 
 
 
@@ -483,7 +483,7 @@ string cachedCopy(element * ptr){
 }
 void update(element * ptr, string response){
   FILE* fptr;
-  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  string key = ptr->method + " " + ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
   if(cache_loc[key] == 1)
   {
     fptr = fopen("cache_data1.txt", "w+");
@@ -526,6 +526,13 @@ void update(element * ptr, string response){
   time(&time_stamp);
   cache_time[key].erase(cache_time[key].begin());
   cache_time[key].push_back(time_stamp);
+}
+/*********************************************************************************************/
+bool canCache(string http_request)
+{
+  if(http_request.find("Cache-control: no-cache") == string::npos)
+    return true;
+  return false;
 }
 /*********************************************************************************************/
 void * serveRequest(void * arg)
@@ -579,7 +586,8 @@ void * serveRequest(void * arg)
     /************************** Send request to server and get response *********************/
         
         response = communication(server_socket, ptr, http_request);
-        doCache(ptr , response);
+        if(canCache(response))
+          doCache(ptr , response);
     /****************************************************************************************/
       }
     }

@@ -25,7 +25,8 @@ class HTTPCacheRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
 
     def end_headers(self):
-        self.send_header('Cache-control', 'must-revalidate')
+        #self.send_header('Cache-control', 'must-revalidate')
+        self.send_header('Cache-control', 'no-cache')
         SimpleHTTPServer.SimpleHTTPRequestHandler.end_headers(self)
 
     def do_POST(self):

@@ -6,6 +6,9 @@
 - 127.0.0.1:20200
 - 127.0.0.1:20199
 
+# Server not allowing caching:
+- 127.0.0.1:20000
+
 # Start the servers:
 - Change directory to 'servers'
 - Change directory to each of the folder. Eg:'127.0.0.1:20000'
