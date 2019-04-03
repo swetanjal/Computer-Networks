@@ -32,6 +32,7 @@ struct element{
 
 map <string, vector<time_t> > cache_time;
 map <string , int> cache_loc;
+int idx;
 /**************************base64 encode and decode functions*************************************/
 /* 
    base64.cpp and base64.h
@@ -314,7 +315,8 @@ bool isCached(element * ptr){
   string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
   if(cache_loc.find(key)==cache_loc.end())
     return false;
-
+  char * dt = ctime(&cache_time[key][2]);
+  ptr->date_time = &dt[0];
   return true;
 }
 void doCache(element *ptr , string response)
@@ -322,29 +324,39 @@ void doCache(element *ptr , string response)
   time_t time_stamp;
   time(&time_stamp);
   string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  //cout << cache_time[key].size() << endl;
   if(cache_time[key].size() <= 2)
     cache_time[key].push_back(time_stamp);
   else
   {
     // Pop first
   	cache_time[key].erase(cache_time[key].begin());
-
   	// Enter new value and compute
   	cache_time[key].push_back(time_stamp);
     double sum_time = difftime(cache_time[key][2],cache_time[key][1]) + difftime(cache_time[key][1],cache_time[key][0]);
     if(sum_time <= 300)
     {
+      
       if(cache_loc.find(key)==cache_loc.end())
       //not present in cache
       {
         auto it = cache_loc.begin();
-
+        int cnt = 0;
+        for(auto i = it; i != cache_loc.end(); ++i)
+        {
+          if(i->second == (idx + 1))
+          {
+            it = i;
+            break;
+          }
+        }
         // Add element to cache
         cache_loc[key] = it->second;
 
         // Pop first element
         cache_loc.erase(it); 
-
+        idx++;
+        idx = idx % 3;
         // Writing in the data
         FILE* fptr;
         if(cache_loc[key] == 1)
@@ -355,7 +367,7 @@ void doCache(element *ptr , string response)
              printf("Error!");
              exit(1);
           }
-          fprintf(fptr,"%s", response);
+          fprintf(fptr,"%s", &response[0]);
           fclose(fptr);
 
         }
@@ -368,7 +380,7 @@ void doCache(element *ptr , string response)
              printf("Error!");
              exit(1);
           }
-          fprintf(fptr,"%s", response);
+          fprintf(fptr,"%s", &response[0]);
           fclose(fptr);
           
         }
@@ -381,7 +393,7 @@ void doCache(element *ptr , string response)
              printf("Error!");
              exit(1);
           }
-          fprintf(fptr,"%s", response);
+          fprintf(fptr,"%s", &response[0]);
           fclose(fptr);
           
         }
@@ -393,8 +405,8 @@ void doCache(element *ptr , string response)
 }
 string cachedCopy(element * ptr){
   // string s = (ptr -> destination_ip) + ':' + to_string(ptr -> destination_port) + '/';
- //  return "";
-
+  //  return "";
+  cout << "Using cached copy.\n";
   string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
 
 
@@ -469,6 +481,52 @@ string cachedCopy(element * ptr){
 
 
 }
+void update(element * ptr, string response){
+  FILE* fptr;
+  string key = ptr -> destination_ip + ':' + to_string(ptr -> destination_port ) + ':' + ptr -> filename;
+  if(cache_loc[key] == 1)
+  {
+    fptr = fopen("cache_data1.txt", "w+");
+    if(fptr == NULL)
+    {
+        printf("Error!");
+        exit(1);
+    }
+    fprintf(fptr,"%s", &response[0]);
+    fclose(fptr);
+
+  }
+
+  else if(cache_loc[key] == 2)
+  {
+    fptr = fopen("cache_data2.txt", "w+");
+    if(fptr == NULL)
+    {
+        printf("Error!");
+        exit(1);
+    }
+    fprintf(fptr,"%s", &response[0]);
+    fclose(fptr);
+    
+  }
+
+  else if(cache_loc[key] == 3)
+  {
+    fptr = fopen("cache_data3.txt", "w+");
+    if(fptr == NULL)
+    {
+        printf("Error!");
+        exit(1);
+    }
+    fprintf(fptr,"%s", &response[0]);
+    fclose(fptr);
+    
+  }
+  time_t time_stamp;
+  time(&time_stamp);
+  cache_time[key].erase(cache_time[key].begin());
+  cache_time[key].push_back(time_stamp);
+}
 /*********************************************************************************************/
 void * serveRequest(void * arg)
 {
@@ -504,6 +562,10 @@ void * serveRequest(void * arg)
         if(!isModified(response))
         {
           response = cachedCopy(ptr);
+        }
+        else{
+          // Update cached copy
+          update(ptr , response);
         }
       }
       else{
